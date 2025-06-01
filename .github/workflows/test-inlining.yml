@@ -1,4 +1,4 @@
-name: CMake on multiple platforms
+name: CMake on multiple platforms (Inlining Benchmark)
 
 on:
   push:
@@ -35,46 +35,50 @@ jobs:
             c_compiler: cl
 
     steps:
-    - uses: actions/checkout@v4
+    - name: Checkout code
+      uses: actions/checkout@v4
 
-    - name: Set reusable strings
-      id: strings
-      shell: bash
-      run: echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
-
-    - name: Configure CMake
+    - name: Configure CMake (default_inline)
+      working-directory: ${{ github.workspace }}/optimizations/inlining
       run: >
-        cmake -B ${{ steps.strings.outputs.build-output-dir }}
+        cmake -B build
         -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
         -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
         -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
-        -S optimizations/inlining
+        -S .
 
-    - name: Build
-      run: cmake --build ${{ steps.strings.outputs.build-output-dir }} --config ${{ matrix.build_type }}
+    - name: Build (default_inline)
+      working-directory: ${{ github.workspace }}/optimizations/inlining
+      run: cmake --build build --config ${{ matrix.build_type }}
 
     - name: Run default_inline benchmark
-      working-directory: ${{ steps.strings.outputs.build-output-dir }}
+      working-directory: ${{ github.workspace }}/optimizations/inlining/build
       run: ./inlining 1000 3 default_results.csv
 
-    - name: Run forced_inline benchmark
-      working-directory: ${{ steps.strings.outputs.build-output-dir }}
+    - name: Configure & Build (forced_inline)
+      working-directory: ${{ github.workspace }}/optimizations/inlining
       run: |
-        cmake -B . -DFORCE_INLINE=ON ..
-        cmake --build . --config ${{ matrix.build_type }}
-        ./inlining 1000 3 force_results.csv
+        cmake -B build_forced -DFORCE_INLINE=ON -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }} -DCMAKE_C_COMPILER=${{ matrix.c_compiler }} -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -S .
+        cmake --build build_forced --config ${{ matrix.build_type }}
+
+    - name: Run forced_inline benchmark
+      working-directory: ${{ github.workspace }}/optimizations/inlining/build_forced
+      run: ./inlining 1000 3 force_results.csv
+
+    - name: Configure & Build (no_inline)
+      working-directory: ${{ github.workspace }}/optimizations/inlining
+      run: |
+        cmake -B build_noinline -DNO_INLINE=ON -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }} -DCMAKE_C_COMPILER=${{ matrix.c_compiler }} -DCMAKE_BUILD_TYPE=${{ matrix.build_type }} -S .
+        cmake --build build_noinline --config ${{ matrix.build_type }}
 
     - name: Run no_inline benchmark
-      working-directory: ${{ steps.strings.outputs.build-output-dir }}
-      run: |
-        cmake -B . -DNO_INLINE=ON ..
-        cmake --build . --config ${{ matrix.build_type }}
-        ./inlining 1000 3 noinline_results.csv
+      working-directory: ${{ github.workspace }}/optimizations/inlining/build_noinline
+      run: ./inlining 1000 3 noinline_results.csv
 
     - name: Verify result files
-      working-directory: ${{ steps.strings.outputs.build-output-dir }}
+      working-directory: ${{ github.workspace }}/optimizations/inlining
       run: |
-        test -f default_results.csv || (echo "❌ default_results.csv missing" && exit 1)
-        test -f force_results.csv || (echo "❌ force_results.csv missing" && exit 1)
-        test -f noinline_results.csv || (echo "❌ noinline_results.csv missing" && exit 1)
+        test -f build/default_results.csv || (echo "❌ default_results.csv missing" && exit 1)
+        test -f build_forced/force_results.csv || (echo "❌ force_results.csv missing" && exit 1)
+        test -f build_noinline/noinline_results.csv || (echo "❌ noinline_results.csv missing" && exit 1)
         echo "✅ All output files present."
