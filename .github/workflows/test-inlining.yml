@@ -56,7 +56,13 @@ jobs:
 
     - name: Run (default)
       working-directory: inlining/build
-      run: ./inlining 1000 3 default_results.csv
+      run: |
+        if [ "$RUNNER_OS" = "Windows" ]; then
+          exe="./Release/inlining.exe"
+        else
+          exe="./inlining"
+        fi
+        $exe 1000 3 default_results.csv
 
     ####################################################################
     # FORCE-INLINE BUILD & RUN
@@ -77,7 +83,13 @@ jobs:
 
     - name: Run (forced-inline)
       working-directory: inlining/build_forced
-      run: ./inlining 1000 3 force_results.csv
+      run: |
+        if [ "$RUNNER_OS" = "Windows" ]; then
+          exe="./Release/inlining.exe"
+        else
+          exe="./inlining"
+        fi
+        $exe 1000 3 force_results.csv
 
     ####################################################################
     # NO-INLINE BUILD & RUN
@@ -98,7 +110,13 @@ jobs:
 
     - name: Run (no-inline)
       working-directory: inlining/build_noinline
-      run: ./inlining 1000 3 noinline_results.csv
+      run: |
+        if [ "$RUNNER_OS" = "Windows" ]; then
+          exe="./Release/inlining.exe"
+        else
+          exe="./inlining"
+        fi
+        $exe 1000 3 noinline_results.csv
 
     ####################################################################
     # VERIFY OUTPUT FILES
