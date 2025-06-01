@@ -56,6 +56,7 @@ jobs:
 
     - name: Run (default)
       working-directory: inlining/build
+      shell: bash 
       run: |
         if [ "$RUNNER_OS" = "Windows" ]; then
           exe="./Release/inlining.exe"
@@ -83,6 +84,7 @@ jobs:
 
     - name: Run (forced-inline)
       working-directory: inlining/build_forced
+      shell: bash 
       run: |
         if [ "$RUNNER_OS" = "Windows" ]; then
           exe="./Release/inlining.exe"
@@ -110,6 +112,7 @@ jobs:
 
     - name: Run (no-inline)
       working-directory: inlining/build_noinline
+      shell: bash 
       run: |
         if [ "$RUNNER_OS" = "Windows" ]; then
           exe="./Release/inlining.exe"
