@@ -6,10 +6,21 @@
 #include <cstdlib>
 
 // use -DFORCE_INLINE or -DNO_INLINE during compilation
-#ifdef FORCE_INLINE
-    #define INLINE_ATTR inline __attribute__((always_inline))
-#elif defined(NO_INLINE)
-    #define INLINE_ATTR __attribute__((noinline))
+#if defined(_MSC_VER)
+    #define ALWAYS_INLINE __forceinline
+    #define NO_INLINE __declspec(noinline)
+#elif defined(__GNUC__) || defined(__clang__)
+    #define ALWAYS_INLINE inline __attribute__((always_inline))
+    #define NO_INLINE __attribute__((noinline))
+#else
+    #define ALWAYS_INLINE inline
+    #define NO_INLINE
+#endif
+
+#if defined(FORCE_INLINE_MODE)
+    #define INLINE_ATTR ALWAYS_INLINE
+#elif defined(NO_INLINE_MODE)
+    #define INLINE_ATTR NO_INLINE
 #else
     #define INLINE_ATTR inline
 #endif
