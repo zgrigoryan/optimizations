@@ -5,11 +5,21 @@
 #include <fstream>
 
 #ifndef UF
-#define UF 1
+#   define UF 1
 #endif
 #ifndef ITERS
-#define ITERS 100
+#   define ITERS 100
 #endif
+
+/* ─────────────────── portable unroll hint ──────────────────── */
+#if defined(__clang__)
+#   define PRAGMA_UNROLL _Pragma("unroll")
+#elif defined(__GNUC__)
+#   define PRAGMA_UNROLL _Pragma("GCC unroll 8")   // 8 == “try your best”
+#else
+#   define PRAGMA_UNROLL /* nothing */
+#endif
+/* ───────────────────────────────────────────────────────────── */
 
 constexpr std::size_t SIZE = 1'000'000;
 
@@ -17,12 +27,11 @@ template<int K>
 void copy_unrolled(const int* __restrict src, int* __restrict dst) {
     std::size_t i = 0;
     for (; i + K - 1 < SIZE; i += K) {
-#pragma unroll
+        PRAGMA_UNROLL                    // <──- portable
         for (int j = 0; j < K; ++j)
             dst[i + j] = src[i + j];
     }
-    for (; i < SIZE; ++i)
-        dst[i] = src[i];
+    for (; i < SIZE; ++i) dst[i] = src[i];
 }
 
 template<int K>
@@ -47,5 +56,6 @@ int main() {
 
     std::ofstream out("results.csv", std::ios::app);
     out << UF << ", " << avg << '\n';
-    std::cout << "Unroll factor: " << UF << ", Avg time: " << avg << " ns\n";
+    std::cout << "Unroll factor " << UF
+              << " → avg " << avg << " ns\n";
 }
