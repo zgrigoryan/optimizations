@@ -1,0 +1,138 @@
+name: Loop-Unrolling-Benchmark (CMake • multi-platform)
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+    runs-on: ${{ matrix.os }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+        build_type: [Release]
+        c_compiler: [gcc, clang, cl]
+        include:
+          - os: windows-latest   # MSVC
+            c_compiler: cl
+            cpp_compiler: cl
+          - os: ubuntu-latest    # GCC
+            c_compiler: gcc
+            cpp_compiler: g++
+          - os: ubuntu-latest    # Clang
+            c_compiler: clang
+            cpp_compiler: clang++
+        exclude:
+          - os: windows-latest   # no GCC / Clang on Windows runner
+            c_compiler: gcc
+          - os: windows-latest
+            c_compiler: clang
+          - os: ubuntu-latest    # no MSVC on Linux runner
+            c_compiler: cl
+
+    steps:
+    - name: Checkout repo
+      uses: actions/checkout@v4
+
+    ####################################################################
+    # BASELINE  (UF = 1)
+    ####################################################################
+    - name: Configure baseline (UF=1)
+      working-directory: loop_unrolling
+      run: >
+        cmake -B build
+        -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
+        -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
+        -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        -DUF=1
+        -S .
+
+    - name: Build baseline
+      working-directory: loop_unrolling
+      run: cmake --build build --config ${{ matrix.build_type }}
+
+    - name: Run baseline
+      working-directory: loop_unrolling/build
+      shell: bash
+      run: |
+        if [ "$RUNNER_OS" = "Windows" ]; then
+          exe="./Release/loop_unrolling.exe"
+        else
+          exe="./loop_unrolling"
+        fi
+        $exe  > baseline.csv
+
+    ####################################################################
+    # UNROLL ×4  (UF = 4)
+    ####################################################################
+    - name: Configure UF=4
+      working-directory: loop_unrolling
+      run: >
+        cmake -B build_u4
+        -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
+        -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
+        -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        -DUF=4
+        -S .
+
+    - name: Build UF=4
+      working-directory: loop_unrolling
+      run: cmake --build build_u4 --config ${{ matrix.build_type }}
+
+    - name: Run UF=4
+      working-directory: loop_unrolling/build_u4
+      shell: bash
+      run: |
+        if [ "$RUNNER_OS" = "Windows" ]; then
+          exe="./Release/loop_unrolling.exe"
+        else
+          exe="./loop_unrolling"
+        fi
+        $exe  > u4.csv
+
+    ####################################################################
+    # UNROLL ×8  (UF = 8)
+    ####################################################################
+    - name: Configure UF=8
+      working-directory: loop_unrolling
+      run: >
+        cmake -B build_u8
+        -DCMAKE_CXX_COMPILER=${{ matrix.cpp_compiler }}
+        -DCMAKE_C_COMPILER=${{ matrix.c_compiler }}
+        -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
+        -DUF=8
+        -S .
+
+    - name: Build UF=8
+      working-directory: loop_unrolling
+      run: cmake --build build_u8 --config ${{ matrix.build_type }}
+
+    - name: Run UF=8
+      working-directory: loop_unrolling/build_u8
+      shell: bash
+      run: |
+        if [ "$RUNNER_OS" = "Windows" ]; then
+          exe="./Release/loop_unrolling.exe"
+        else
+          exe="./loop_unrolling"
+        fi
+        $exe  > u8.csv
+
+    ####################################################################
+    # VERIFY OUTPUT FILES
+    ####################################################################
+    - name: Verify CSV outputs
+      working-directory: loop_unrolling
+      shell: bash
+      run: |
+        for f in build/baseline.csv \
+                 build_u4/u4.csv  \
+                 build_u8/u8.csv
+        do
+          [[ -f "$f" ]] || { echo "❌ $f missing" ; exit 1 ; }
+        done
+        echo "All result files present ✅"
