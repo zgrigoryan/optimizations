@@ -3,8 +3,13 @@ name: Loop-Unrolling-Benchmark (CMake • multi-platform)
 on:
   push:
     branches: [ "main" ]
+    paths:
+      - 'optimizations/loop_unrolling/**'
   pull_request:
     branches: [ "main" ]
+    paths:
+      - 'optimizations/loop_unrolling/**'
+
 
 jobs:
   build:
