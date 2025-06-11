@@ -3,8 +3,12 @@ name: Inlining-Benchmark (CMake • multi-platform)
 on:
   push:
     branches: [ "main" ]
+    paths:
+      - 'optimizations/inlining/**'
   pull_request:
     branches: [ "main" ]
+    paths:
+      - 'optimizations/inlining/**'
 
 jobs:
   build:
